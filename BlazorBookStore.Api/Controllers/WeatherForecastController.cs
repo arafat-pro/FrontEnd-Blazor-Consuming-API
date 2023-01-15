@@ -24,7 +24,7 @@ namespace BlazorBookStore.Api.Controllers
             _logger.LogInformation("Made call to Weather Endpoint");
             try
             {
-                throw new Exception("THis is our logging test exception");
+                throw new Exception("This is our logging test exception");
 
                 return Enumerable.Range(1, 5).Select(index => new WeatherForecast
                 {

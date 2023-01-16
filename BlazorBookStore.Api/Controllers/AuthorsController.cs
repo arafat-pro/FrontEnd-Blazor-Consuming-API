@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+﻿using AutoMapper;
+using BlazorBookStore.Api.Data;
+using BlazorBookStore.Api.Models.Author;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using BlazorBookStore.Api.Data;
 
 namespace BlazorBookStore.Api.Controllers
 {
@@ -14,22 +11,26 @@ namespace BlazorBookStore.Api.Controllers
     public class AuthorsController : ControllerBase
     {
         private readonly BookStoreDbContext _context;
+        private readonly IMapper mapper;
 
-        public AuthorsController(BookStoreDbContext context)
+        public AuthorsController(BookStoreDbContext context, IMapper mapper)
         {
             _context = context;
+            this.mapper = mapper;
         }
 
         // GET: api/Authors
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Author>>> GetAuthors()
+        public async Task<ActionResult<IEnumerable<AuthorReadOnlyDto>>> GetAuthors()
         {
-            return Ok(await _context.Authors.ToListAsync());
+            var authors = await _context.Authors.ToListAsync();
+            var authorDto = mapper.Map<IEnumerable<AuthorReadOnlyDto>>(authors);
+            return Ok(authorDto);
         }
 
         // GET: api/Authors/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Author>> GetAuthor(int id)
+        public async Task<ActionResult<AuthorReadOnlyDto>> GetAuthor(int id)
         {
             var author = await _context.Authors.FindAsync(id);
 
@@ -38,18 +39,28 @@ namespace BlazorBookStore.Api.Controllers
                 return NotFound();
             }
 
-            return Ok(author);
+            var authorDto = mapper.Map<AuthorReadOnlyDto>(author);
+
+            return Ok(authorDto);
         }
 
         // PUT: api/Authors/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutAuthor(int id, Author author)
+        public async Task<IActionResult> PutAuthor(int id, AuthorUpdateDto authorDto)
         {
-            if (id != author.Id)
+            if (id != authorDto.Id)
             {
                 return BadRequest();
             }
+            var author = await _context.Authors.FindAsync(id);
+
+            if (author == null)
+            {
+                return NotFound();
+            }
+
+            mapper.Map(authorDto, author);
 
             _context.Entry(author).State = EntityState.Modified;
 
@@ -75,8 +86,9 @@ namespace BlazorBookStore.Api.Controllers
         // POST: api/Authors
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Author>> PostAuthor(Author author)
+        public async Task<ActionResult<AuthorCreateDto>> PostAuthor(AuthorCreateDto authorDto)
         {
+            var author = mapper.Map<Author>(authorDto);
             await _context.Authors.AddAsync(author);
             await _context.SaveChangesAsync();
 
@@ -101,7 +113,7 @@ namespace BlazorBookStore.Api.Controllers
 
         private async Task<bool> AuthorExists(int id)
         {
-             return await _context.Authors.AnyAsync(e => e.Id == id);
+            return await _context.Authors.AnyAsync(e => e.Id == id);
         }
     }
 }
